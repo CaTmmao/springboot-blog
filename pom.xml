@@ -78,6 +78,16 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>7.8.1</version>
+                <configuration>
+                    <url>jdbc:mysql://localhost:3306/xdml</url>
+                    <user>root</user>
+                    <password>123456</password>
+                </configuration>
+            </plugin>
             <!--            用于单元测试-->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
