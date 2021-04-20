@@ -1,0 +1,8 @@
+language: java
+
+#用那个 jdk 进行构建
+jdk:
+  - openjdk8
+
+# 用哪个脚本什么命令进行持续集成
+script: mvn verify
