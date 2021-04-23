@@ -78,16 +78,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
-                <version>7.8.1</version>
-                <configuration>
-                    <url>jdbc:mysql://localhost:3306/xdml</url>
-                    <user>root</user>
-                    <password>123456</password>
-                </configuration>
-            </plugin>
             <!--            用于单元测试-->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -125,6 +115,114 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+
+                    <!--                    用docker启动mysql-->
+                    <execution>
+                        <id>docker-run-mysql</id>
+                        <!--                        该插件绑定到哪个阶段-->
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!--                    可执行程序-->
+                            <executable>
+                                sudo
+                            </executable>
+                            <!--                    运行命令的参数-->
+                            <arguments>
+                                <argument>docker</argument>
+                                <argument>run</argument>
+                                <argument>-d</argument>
+                                <argument>--name</argument>
+                                <argument>test-mysql</argument>
+                                <argument>-e</argument>
+                                <argument>MYSQL_ROOT_PASSWORD=123456</argument>
+                                <argument>-e</argument>
+                                <argument>MYSQL_DATABASE=xdml</argument>
+                                <argument>-p</argument>
+                                <argument>3307:3306</argument>
+                                <argument>mysql:8.0.23</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <!--                    等待 mysql 启动完成(否则后续flyway无法连接成功)-->
+                    <execution>
+                        <id>wait-mysql-finish</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>
+                                sleep
+                            </executable>
+                            <arguments>
+                                <argument>30</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                    <!--                    销毁 docker 运行的 mysql-->
+                    <execution>
+                        <id>teardown-mysql</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!--                    可执行程序-->
+                            <executable>
+                                sudo
+                            </executable>
+                            <!--                    运行命令的参数-->
+                            <arguments>
+                                <argument>docker</argument>
+                                <argument>rm</argument>
+                                <argument>-f</argument>
+                                <argument>test-mysql</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--  plugin 执行的顺序根据 pom.xml 中 plugin 标签摆放的先后顺序决定,-->
+            <!--  因此我把 flyway 插件放最下面,-->
+            <!--  是为了让上一个 exec 插件中同样在 pre-integration-test 阶段要执行的任务(用 docker 创建数据库)先执行,-->
+            <!--  再执行下面对数据库数据初始化的任务-->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>7.8.1</version>
+                <configuration>
+                    <url>jdbc:mysql://localhost:3306/xdml</url>
+                    <user>root</user>
+                    <password>123456</password>
+                </configuration>
+                <executions>
+                    <!--                    pre-integration-test 阶段对 mysql 数据初始化-->
+                    <execution>
+                        <id>mysql-setup</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>migrate</goal>
+                        </goals>
+
+                        <configuration>
+                            <url>jdbc:mysql://localhost:3307/xdml</url>
+                            <user>root</user>
+                            <password>123456</password>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
